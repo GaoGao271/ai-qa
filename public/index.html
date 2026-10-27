@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 答疑助手 · Node.js 课程</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f5f7fa;
+      color: #2c3e50;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: #fff;
+      padding: 24px 32px;
+      box-shadow: 0 2px 12px rgba(79, 70, 229, 0.25);
+    }
+    header h1 { font-size: 22px; font-weight: 600; }
+    header p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+    .status-bar {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 10px; font-size: 12px; padding: 4px 12px;
+      background: rgba(255,255,255,0.2); border-radius: 12px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      padding: 24px 32px;
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    @media (max-width: 768px) {
+      main { grid-template-columns: 1fr; padding: 16px; }
+    }
+    .card {
+      background: #fff; border-radius: 12px; padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .ask-area textarea {
+      width: 100%; min-height: 90px; resize: vertical;
+      border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;
+      font-size: 14px; font-family: inherit; color: #2c3e50;
+      transition: border-color 0.2s;
+    }
+    .ask-area textarea:focus {
+      outline: none; border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    .ask-area .row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 10px;
+    }
+    .hint { font-size: 12px; color: #94a3b8; }
+    button {
+      background: #4f46e5; color: #fff; border: none;
+      padding: 10px 24px; border-radius: 8px; font-size: 14px;
+      cursor: pointer; font-weight: 500; transition: all 0.2s;
+    }
+    button:hover:not(:disabled) { background: #4338ca; }
+    button:disabled { background: #a5b4fc; cursor: not-allowed; }
+    .answer-area { margin-top: 20px; }
+    .answer-area h3 {
+      font-size: 14px; color: #64748b; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .answer-content {
+      background: #f8fafc; border-radius: 8px; padding: 16px;
+      font-size: 14px; line-height: 1.8; white-space: pre-wrap;
+      border-left: 3px solid #4f46e5; min-height: 60px;
+    }
+    .answer-content.empty { color: #94a3b8; font-style: italic; border-left-color: #cbd5e1; }
+    .answer-content.error { border-left-color: #ef4444; background: #fef2f2; color: #dc2626; }
+    .sources {
+      margin-top: 12px; padding: 12px; background: #f0fdf4;
+      border-radius: 6px; font-size: 12px; color: #166534;
+    }
+    .sources b { color: #15803d; }
+    .history h3 {
+      font-size: 14px; color: #64748b; margin-bottom: 12px;
+    }
+    .history-item {
+      padding: 12px; border-radius: 8px; margin-bottom: 10px;
+      background: #f8fafc; cursor: pointer; transition: background 0.15s;
+      border-left: 3px solid transparent;
+    }
+    .history-item:hover { background: #eef2ff; border-left-color: #4f46e5; }
+    .history-item .q { font-size: 13px; font-weight: 500; color: #1e293b; }
+    .history-item .meta { font-size: 11px; color: #94a3b8; margin-top: 6px; display: flex; gap: 8px; }
+    .badge {
+      display: inline-block; padding: 1px 6px; border-radius: 4px;
+      font-size: 10px; font-weight: 500;
+    }
+    .badge.demo { background: #fef3c7; color: #b45309; }
+    .badge.ok { background: #dbeafe; color: #1d4ed8; }
+    .badge.err { background: #fee2e2; color: #b91c1c; }
+    .history-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 30px 0; }
+    .loader {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid #fff; border-top-color: transparent;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AI 答疑助手</h1>
+    <p>Node.js 课程专属 · 基于课程资料 + 大模型生成回答</p>
+    <div class="status-bar" id="statusBar">
+      <span class="dot"></span><span id="statusText">加载中...</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- 左侧：提问 + 答案 -->
+    <section>
+      <div class="card ask-area">
+        <textarea id="questionInput" placeholder="请输入你的 Node.js 课程相关问题，例如：事件循环的微任务优先级是怎样的？"></textarea>
+        <div class="row">
+          <span class="hint" id="charCount">0 / 500</span>
+          <button id="askBtn" onclick="askQuestion()">发送问题</button>
+        </div>
+      </div>
+
+      <div class="card answer-area">
+        <h3>💡 回答结果</h3>
+        <div class="answer-content empty" id="answerContent">等待你的提问...</div>
+        <div class="sources" id="sourcesBox" style="display:none"></div>
+      </div>
+    </section>
+
+    <!-- 右侧：历史问答 -->
+    <aside class="card history">
+      <h3>📜 历史问答</h3>
+      <div id="historyList"><div class="history-empty">暂无记录</div></div>
+    </aside>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    // ---------- 初始化 ----------
+    async function init() {
+      await refreshStatus();
+      await refreshHistory();
+    }
+
+    async function refreshStatus() {
+      try {
+        const res = await fetch('/status');
+        const { data } = await res.json();
+        const bar = $('statusBar');
+        const text = $('statusText');
+        if (data.demoMode) {
+          bar.querySelector('.dot').style.background = '#f59e0b';
+          text.textContent = '演示模式（未配置 LLM_API_KEY）';
+        } else {
+          bar.querySelector('.dot').style.background = '#34d399';
+          text.textContent = `已连接 · 模型 ${data.model}`;
+        }
+      } catch {
+        $('statusText').textContent = '服务未就绪';
+      }
+    }
+
+    async function refreshHistory() {
+      try {
+        const res = await fetch('/records');
+        const { data } = await res.json();
+        const list = $('historyList');
+        if (!data || data.length === 0) {
+          list.innerHTML = '<div class="history-empty">暂无记录</div>';
+          return;
+        }
+        list.innerHTML = data.slice(0, 20).map((r) => {
+          const badge = r.error ? 'err' : (r.demoMode ? 'demo' : 'ok');
+          const label = r.error ? '失败' : (r.demoMode ? '演示' : 'AI');
+          const time = new Date(r.createdAt).toLocaleString('zh-CN', {
+            month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit',
+          });
+          return `
+            <div class="history-item" onclick="showHistory('${r.id}')">
+              <div class="q">${escapeHtml(r.question)}</div>
+              <div class="meta">
+                <span class="badge ${badge}">${label}</span>
+                <span>${time}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.warn('加载历史失败:', e);
+      }
+    }
+
+    // ---------- 提问 ----------
+    async function askQuestion() {
+      const input = $('questionInput');
+      const question = input.value.trim();
+      if (!question) return;
+
+      const btn = $('askBtn');
+      const answer = $('answerContent');
+      const sources = $('sourcesBox');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader"></span>思考中...';
+      answer.className = 'answer-content';
+      answer.textContent = '正在检索课程资料并调用大模型...';
+      sources.style.display = 'none';
+
+      try {
+        const res = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question }),
+        });
+        const data = await res.json();
+
+        if (data.code === 'OK') {
+          answer.textContent = data.data.answer;
+          if (data.data.sources && data.data.sources.length > 0) {
+            sources.style.display = 'block';
+            sources.innerHTML = '<b>📚 参考资料来源：</b><br>' +
+              data.data.sources.map((s, i) => `#${i + 1} ${escapeHtml(s)}`).join('<br>');
+          }
+        } else {
+          answer.className = 'answer-content error';
+          answer.textContent = `❌ ${data.message || '请求失败'}`;
+        }
+      } catch (err) {
+        answer.className = 'answer-content error';
+        answer.textContent = `❌ 网络错误：${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '发送问题';
+        refreshHistory();
+      }
+    }
+
+    // ---------- 历史回看 ----------
+    async function showHistory(id) {
+      const res = await fetch('/records');
+      const { data } = await res.json();
+      const record = data.find((r) => r.id === id);
+      if (!record) return;
+      $('questionInput').value = record.question;
+      $('answerContent').className = record.error ? 'answer-content error' : 'answer-content';
+      $('answerContent').textContent = record.error
+        ? `❌ ${record.error}`
+        : record.answer;
+      const sources = $('sourcesBox');
+      if (record.sources && record.sources.length > 0) {
+        sources.style.display = 'block';
+        sources.innerHTML = '<b>📚 参考资料来源：</b><br>' +
+          record.sources.map((s, i) => `#${i + 1} ${escapeHtml(s)}`).join('<br>');
+      } else {
+        sources.style.display = 'none';
+      }
+    }
+
+    // ---------- 工具 ----------
+    function escapeHtml(str) {
+      return (str || '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+
+    // 字数限制
+    $('questionInput').addEventListener('input', (e) => {
+      const len = e.target.value.length;
+      $('charCount').textContent = `${len} / 500`;
+      $('charCount').style.color = len > 500 ? '#ef4444' : '#94a3b8';
+    });
+
+    // Ctrl/⌘ + Enter 快捷发送
+    $('questionInput').addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') askQuestion();
+    });
+
+    init();
+  </script>
+</body>
+</html>

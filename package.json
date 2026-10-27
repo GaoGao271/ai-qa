@@ -1,0 +1,13 @@
+{
+  "name": "ai-qa-assistant",
+  "version": "1.0.0",
+  "description": "原生 Node.js AI 答疑助手（零第三方依赖）",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "start:env": "node --env-file=.env src/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
