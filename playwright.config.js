@@ -13,8 +13,10 @@ module.exports = defineConfig({
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:3000',
-    // 实验要求观察浏览器执行过程，因此关闭无头模式
-    headless: false,
+    // 实验要求观察浏览器执行过程，因此本地默认关闭无头模式；
+    // 仅 GitHub Actions 的 ubuntu runner 没有桌面，必须用无头模式
+    // 注意：不用 process.env.CI，因为本机系统级被误设了 CI=true
+    headless: !!process.env.GITHUB_ACTIONS,
     // 失败时自动截图，便于写实验报告时取证
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
