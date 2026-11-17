@@ -10,7 +10,8 @@ module.exports = defineConfig({
   testMatch: '**/*.e2e.spec.js',
   timeout: 30_000,
   fullyParallel: false,
-  reporter: 'list',
+  // 控制台 list 输出（本地看方便）+ HTML 报告（CI 上传到 artifact）
+  reporter: ['list', 'html', { open: 'never' }],
   use: {
     baseURL: 'http://localhost:3000',
     // 实验要求观察浏览器执行过程，因此本地默认关闭无头模式；
