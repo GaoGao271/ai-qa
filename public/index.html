@@ -125,24 +125,24 @@
     <!-- 左侧：提问 + 答案 -->
     <section>
       <div class="card ask-area">
-        <textarea id="questionInput" placeholder="请输入你的 Node.js 课程相关问题，例如：事件循环的微任务优先级是怎样的？"></textarea>
+        <textarea id="questionInput" data-testid="ask-input" placeholder="请输入你的 Node.js 课程相关问题，例如：事件循环的微任务优先级是怎样的？"></textarea>
         <div class="row">
           <span class="hint" id="charCount">0 / 500</span>
-          <button id="askBtn" onclick="askQuestion()">发送问题</button>
+          <button id="askBtn" data-testid="ask-button" onclick="askQuestion()">发送问题</button>
         </div>
       </div>
 
-      <div class="card answer-area">
+      <div class="card answer-area" data-testid="answer-panel">
         <h3>💡 回答结果</h3>
-        <div class="answer-content empty" id="answerContent">等待你的提问...</div>
-        <div class="sources" id="sourcesBox" style="display:none"></div>
+        <div class="answer-content empty" id="answerContent" data-testid="answer-text">等待你的提问...</div>
+        <div class="sources" id="sourcesBox" data-testid="answer-meta" style="display:none"></div>
       </div>
     </section>
 
     <!-- 右侧：历史问答 -->
     <aside class="card history">
       <h3>📜 历史问答</h3>
-      <div id="historyList"><div class="history-empty">暂无记录</div></div>
+      <div id="historyList" data-testid="history-list"><div class="history-empty">暂无记录</div></div>
     </aside>
   </main>
 
@@ -190,7 +190,7 @@
             hour: '2-digit', minute: '2-digit',
           });
           return `
-            <div class="history-item" onclick="showHistory('${r.id}')">
+            <div class="history-item" data-testid="history-item" onclick="showHistory('${r.id}')">
               <div class="q">${escapeHtml(r.question)}</div>
               <div class="meta">
                 <span class="badge ${badge}">${label}</span>

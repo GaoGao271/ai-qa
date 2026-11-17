@@ -7,8 +7,10 @@
 const fs = require('fs');
 const path = require('path');
 
-// 记录文件路径（项目根目录下）
-const RECORDS_PATH = path.resolve(__dirname, '../../qa-records.json');
+// 记录文件路径（项目根目录下；测试可通过 QA_RECORDS_PATH 指向临时文件，避免污染真实数据）
+const RECORDS_PATH = process.env.QA_RECORDS_PATH
+  ? path.resolve(process.env.QA_RECORDS_PATH)
+  : path.resolve(__dirname, '../../qa-records.json');
 
 /**
  * 确保记录文件存在，不存在则创建空 JSON 数组文件

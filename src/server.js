@@ -157,33 +157,60 @@ async function dispatch(req, res) {
   }
 }
 
-// 启动服务
-const server = http.createServer((req, res) => {
-  dispatch(req, res).catch((err) => {
-    console.error('[server] 未捕获异常:', err);
-    sendJson(res, 500, { code: 'INTERNAL_ERROR', message: err.message });
+/**
+ * 创建 HTTP 服务实例（不监听端口）
+ * 供单元/集成测试复用，避免测试时占用端口
+ * @returns {http.Server}
+ */
+function createServer() {
+  return http.createServer((req, res) => {
+    dispatch(req, res).catch((err) => {
+      console.error('[server] 未捕获异常:', err);
+      sendJson(res, 500, { code: 'INTERNAL_ERROR', message: err.message });
+    });
   });
-});
-
-server.listen(PORT, () => {
-  const demoMode = !process.env.LLM_API_KEY;
-  console.log('\n========================================');
-  console.log('  AI 答疑助手 启动成功');
-  console.log(`  地址: http://localhost:${PORT}`);
-  console.log(`  演示模式: ${demoMode ? '是（未配置 LLM_API_KEY）' : '否'}`);
-  console.log('  接口: POST /ask   GET /records   GET /status');
-  console.log('========================================\n');
-});
-
-// 优雅退出
-function gracefulShutdown() {
-  console.log('\n[server] 正在关闭...');
-  server.close(() => {
-    console.log('[server] 已退出');
-    process.exit(0);
-  });
-  // 超时强退
-  setTimeout(() => process.exit(1), 5000).unref();
 }
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
+
+/**
+ * 启动服务并注册优雅退出
+ * @param {number} [port]
+ * @returns {http.Server}
+ */
+function start(port = PORT) {
+  const server = createServer();
+
+  server.listen(port, () => {
+    const demoMode = !process.env.LLM_API_KEY;
+    console.log('\n========================================');
+    console.log('  AI 答疑助手 启动成功');
+    console.log(`  地址: http://localhost:${port}`);
+    console.log(`  演示模式: ${demoMode ? '是（未配置 LLM_API_KEY）' : '否'}`);
+    console.log('  接口: POST /ask   GET /records   GET /status');
+    console.log('========================================\n');
+  });
+
+  // 优雅退出
+  function gracefulShutdown() {
+    console.log('\n[server] 正在关闭...');
+    server.close(() => {
+      console.log('[server] 已退出');
+      process.exit(0);
+    });
+    // 超时强退
+    setTimeout(() => process.exit(1), 5000).unref();
+  }
+  process.on('SIGTERM', gracefulShutdown);
+  process.on('SIGINT', gracefulShutdown);
+
+  return server;
+}
+
+// 仅在直接运行时监听端口，被 require 时不启动
+if (require.main === module) {
+  start();
+}
+
+module.exports = {
+  createServer,
+  start,
+};

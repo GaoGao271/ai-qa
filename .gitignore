@@ -1,5 +1,22 @@
+# 环境敏感文件
 .env
 .env.example
+
+# 运行时数据
 qa-records.json
-.DS_Store
+
+# 日志
 *.log
+npm-debug.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 依赖（npm ci 会重新安装）
+node_modules/
+
+# 测试产物（临时生成，不应入库）
+test-results/
+playwright-report/
+coverage/

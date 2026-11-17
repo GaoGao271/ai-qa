@@ -1,0 +1,28 @@
+# 本地依赖（Docker 里会重新 npm ci）
+node_modules/
+
+# 版本控制 / CI 配置（运行时不需要）
+.git/
+.github/
+
+# 测试相关（运行时完全不需要）
+tests/
+*.test.js
+*.spec.js
+playwright.config.js
+vitest.config.js
+test-results/
+playwright-report/
+
+# 环境敏感文件 / 运行时临时产物
+.env
+.env.*
+qa-records.json
+*.log
+npm-debug.log
+
+# 杂项
+.DS_Store
+Dockerfile
+.dockerignore
+README.md

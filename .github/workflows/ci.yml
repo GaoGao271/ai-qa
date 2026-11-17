@@ -1,0 +1,63 @@
+name: AIQA CI流水线
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ '**' ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-test:
+    name: 单元测试 (vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取项目源码
+        uses: actions/checkout@v4
+
+      - name: 配置 Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: 安装项目依赖
+        run: npm ci
+
+      - name: 执行单元测试
+        run: npm test
+
+  e2e-test:
+    name: E2E端到端测试 (playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取项目源码
+        uses: actions/checkout@v4
+
+      - name: 配置 Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: 安装项目依赖
+        run: npm ci
+
+      - name: 安装Playwright浏览器依赖
+        run: npx playwright install --with-deps chromium
+
+      - name: 执行E2E端到端测试
+        run: npm run test:e2e
+
+      - name: 上传测试产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
